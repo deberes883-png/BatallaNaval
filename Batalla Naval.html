@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batalla Naval - Conjugaison Espagnole</title>
+    <style>
+        :root {
+            --primary: #003366;
+            --secondary: #00a8cc;
+            --accent: #ffcc00;
+            --water: #e0f7fa;
+            --hit: #ff4c4c;
+            --miss: #b2ebf2;
+            --wrong: #9e9e9e;
+            --text-dark: #333;
+            --text-light: #fff;
+            --board-bg: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f0f4f8;
+            color: var(--text-dark);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: var(--primary);
+            margin: 0 0 5px 0;
+            font-size: 2.5rem;
+        }
+
+        p.subtitle {
+            color: #666;
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .player-card {
+            background: white;
+            padding: 15px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            text-align: center;
+            flex: 1;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .player-card h2 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: var(--primary);
+        }
+
+        .player-card .score {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--secondary);
+            margin-top: 10px;
+        }
+
+        .player-card.active {
+            border-color: var(--accent);
+            transform: scale(1.05);
+            box-shadow: 0 8px 15px rgba(255, 204, 0, 0.2);
+        }
+
+        .game-container {
+            background: var(--board-bg);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 120px repeat(6, 80px);
+            gap: 8px;
+        }
+
+        .cell {
+            height: 80px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        /* Headers */
+        .header-cell {
+            background-color: var(--primary);
+            color: var(--text-light);
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 5px;
+        }
+
+        .verb-header {
+            background-color: var(--secondary);
+            color: var(--text-light);
+            font-size: 1rem;
+            justify-content: flex-start;
+            padding-left: 15px;
+        }
+
+        /* Playable cells */
+        .play-cell {
+            background-color: var(--water);
+            cursor: pointer;
+            border: 2px solid #b2ebf2;
+            font-size: 2rem;
+        }
+
+        .play-cell:hover:not(.revealed) {
+            background-color: #b2ebf2;
+            transform: translateY(-2px);
+        }
+
+        .play-cell.revealed {
+            cursor: default;
+        }
+
+        .play-cell.hit {
+            background-color: var(--hit);
+            border-color: #d32f2f;
+            color: white;
+            animation: pop 0.4s ease;
+        }
+
+        .play-cell.miss {
+            background-color: var(--miss);
+            border-color: #80deea;
+            color: var(--primary);
+        }
+
+        .play-cell.wrong {
+            background-color: var(--wrong);
+            border-color: #757575;
+            color: white;
+            opacity: 0.7;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            text-align: center;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .modal h3 {
+            color: var(--primary);
+            margin-top: 0;
+            font-size: 1.5rem;
+        }
+
+        .prompt-text {
+            font-size: 1.2rem;
+            margin: 20px 0;
+        }
+
+        .highlight {
+            color: var(--secondary);
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.2rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--secondary);
+        }
+
+        .accents-keyboard {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .accent-btn {
+            background: #f0f4f8;
+            border: 1px solid #ccc;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .accent-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .btn {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #008ba3;
+        }
+
+        /* Animations */
+        @keyframes pop {
+            0% { transform: scale(0.8); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .message-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            display: none;
+        }
+        .msg-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .msg-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Batalla Naval</h1>
+        <p class="subtitle">Conjugaison Espagnole - Présent de l'indicatif</p>
+    </header>
+
+    <div class="scoreboard">
+        <div class="player-card active" id="card-p1">
+            <h2>Joueur 1</h2>
+            <div class="score" id="score-p1">0</div>
+        </div>
+        <div class="player-card" id="card-p2">
+            <h2>Joueur 2</h2>
+            <div class="score" id="score-p2">0</div>
+        </div>
+    </div>
+
+    <div class="game-container">
+        <div class="grid" id="game-grid">
+            <!-- La grille sera générée en JS -->
+        </div>
+    </div>
+
+    <!-- Modale d'action -->
+    <div class="modal-overlay" id="action-modal">
+        <div class="modal">
+            <h3 id="modal-title">Préparer le tir !</h3>
+            <p class="prompt-text">
+                Conjuguez le verbe <span id="verb-prompt" class="highlight"></span> avec <span id="pronoun-prompt" class="highlight"></span> :
+            </p>
+            
+            <div class="accents-keyboard">
+                <button class="accent-btn" onclick="insertAccent('á')">á</button>
+                <button class="accent-btn" onclick="insertAccent('é')">é</button>
+                <button class="accent-btn" onclick="insertAccent('í')">í</button>
+                <button class="accent-btn" onclick="insertAccent('ó')">ó</button>
+                <button class="accent-btn" onclick="insertAccent('ú')">ú</button>
+                <button class="accent-btn" onclick="insertAccent('ñ')">ñ</button>
+            </div>
+
+            <input type="text" id="answer-input" placeholder="Votre réponse..." autocomplete="off">
+            <button class="btn" onclick="submitAnswer()">FEU !</button>
+
+            <div id="feedback-message" class="message-box"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION PÉDAGOGIQUE ---
+        // Vous pouvez modifier les verbes et les temps ici pour adapter le jeu.
+        const pronouns = ["Yo", "Tú", "Él/Ella/Ud", "Nosotros", "Vosotros", "Ellos/Uds"];
+        const verbsData = [
+            { inf: "Ser", conj: ["soy", "eres", "es", "somos", "sois", "son"] },
+            { inf: "Estar", conj: ["estoy", "estás", "está", "estamos", "estáis", "están"] },
+            { inf: "Tener", conj: ["tengo", "tienes", "tiene", "tenemos", "tenéis", "tienen"] },
+            { inf: "Hacer", conj: ["hago", "haces", "hace", "hacemos", "hacéis", "hacen"] },
+            { inf: "Ir", conj: ["voy", "vas", "va", "vamos", "vais", "van"] },
+            { inf: "Jugar", conj: ["juego", "juegas", "juega", "jugamos", "jugáis", "juegan"] }
+        ];
+
+        // --- VARIABLES D'ÉTAT ---
+        const totalShips = 10; // Nombre de bateaux cachés
+        let ships = []; // Coordonnées des bateaux
+        let currentPlayer = 1;
+        let scores = { 1: 0, 2: 0 };
+        let activeCell = null; // {row, col}
+
+        // --- INITIALISATION ---
+        function initGame() {
+            generateGrid();
+            placeShips();
+            updateTurnUI();
+        }
+
+        function generateGrid() {
+            const grid = document.getElementById('game-grid');
+            grid.innerHTML = '';
+
+            // Case vide en haut à gauche
+            let corner = document.createElement('div');
+            corner.className = 'cell header-cell';
+            corner.innerText = 'Verbos ↘';
+            grid.appendChild(corner);
+
+            // En-têtes des colonnes (Pronoms)
+            pronouns.forEach(p => {
+                let cell = document.createElement('div');
+                cell.className = 'cell header-cell';
+                cell.innerText = p;
+                grid.appendChild(cell);
+            });
+
+            // Lignes (Verbes + Cases de jeu)
+            verbsData.forEach((verb, rIndex) => {
+                // En-tête de la ligne
+                let rowHeader = document.createElement('div');
+                rowHeader.className = 'cell verb-header';
+                rowHeader.innerText = verb.inf;
+                grid.appendChild(rowHeader);
+
+                // Cases jouables
+                pronouns.forEach((p, cIndex) => {
+                    let cell = document.createElement('div');
+                    cell.className = 'cell play-cell';
+                    cell.id = `cell-${rIndex}-${cIndex}`;
+                    cell.onclick = () => handleCellClick(rIndex, cIndex);
+                    grid.appendChild(cell);
+                });
+            });
+        }
+
+        function placeShips() {
+            ships = [];
+            while(ships.length < totalShips) {
+                let r = Math.floor(Math.random() * verbsData.length);
+                let c = Math.floor(Math.random() * pronouns.length);
+                let coord = `${r}-${c}`;
+                if(!ships.includes(coord)) {
+                    ships.push(coord);
+                }
+            }
+            // console.log("Triche (Positions des bateaux) :", ships);
+        }
+
+        // --- LOGIQUE DE JEU ---
+        function handleCellClick(r, c) {
+            let cell = document.getElementById(`cell-${r}-${c}`);
+            if(cell.classList.contains('revealed')) return; // Déjà joué
+
+            activeCell = { row: r, col: c };
+            
+            // Préparer la modale
+            document.getElementById('verb-prompt').innerText = verbsData[r].inf;
+            document.getElementById('pronoun-prompt').innerText = pronouns[c];
+            document.getElementById('answer-input').value = '';
+            document.getElementById('feedback-message').style.display = 'none';
+            document.getElementById('action-modal').style.display = 'flex';
+            document.getElementById('answer-input').focus();
+        }
+
+        function insertAccent(char) {
+            const input = document.getElementById('answer-input');
+            input.value += char;
+            input.focus();
+        }
+
+        // Permet de valider avec la touche Entrée
+        document.getElementById('answer-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') submitAnswer();
+        });
+
+        function submitAnswer() {
+            let inputVal = document.getElementById('answer-input').value.trim().toLowerCase();
+            if(!inputVal) return;
+
+            let correctAns = verbsData[activeCell.row].conj[activeCell.col].toLowerCase();
+            let feedback = document.getElementById('feedback-message');
+            
+            feedback.style.display = 'block';
+
+            if(inputVal === correctAns) {
+                // Bonne conjugaison
+                let isHit = ships.includes(`${activeCell.row}-${activeCell.col}`);
+                let cellEl = document.getElementById(`cell-${activeCell.row}-${activeCell.col}`);
+                
+                cellEl.classList.add('revealed');
+                
+                if(isHit) {
+                    cellEl.classList.add('hit');
+                    cellEl.innerText = '💥'; // Bateau touché
+                    scores[currentPlayer]++;
+                    document.getElementById(`score-p${currentPlayer}`).innerText = scores[currentPlayer];
+                    feedback.className = 'message-box msg-success';
+                    feedback.innerText = "¡Excelente! Touché ! 💥";
+                } else {
+                    cellEl.classList.add('miss');
+                    cellEl.innerText = '🌊'; // Dans l'eau
+                    feedback.className = 'message-box msg-success';
+                    feedback.innerText = "¡Bien conjugado! Mais c'est dans l'eau 🌊.";
+                }
+
+                setTimeout(closeModalAndSwitchTurn, 1500);
+            } else {
+                // Mauvaise conjugaison
+                let cellEl = document.getElementById(`cell-${activeCell.row}-${activeCell.col}`);
+                cellEl.classList.add('revealed', 'wrong');
+                cellEl.innerText = '❌';
+                
+                feedback.className = 'message-box msg-error';
+                feedback.innerHTML = `¡Error! La bonne réponse était : <b>${correctAns}</b>.<br>Tour perdu.`;
+                
+                setTimeout(closeModalAndSwitchTurn, 3000); // Temps plus long pour lire la correction
+            }
+        }
+
+        function closeModalAndSwitchTurn() {
+            document.getElementById('action-modal').style.display = 'none';
+            
+            // Vérifier si fin du jeu
+            if(scores[1] + scores[2] === totalShips) {
+                endGame();
+                return;
+            }
+
+            // Changer de joueur
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            updateTurnUI();
+        }
+
+        function updateTurnUI() {
+            document.getElementById('card-p1').classList.remove('active');
+            document.getElementById('card-p2').classList.remove('active');
+            document.getElementById(`card-p${currentPlayer}`).classList.add('active');
+        }
+
+        function endGame() {
+            let winner = scores[1] > scores[2] ? "Joueur 1" : (scores[2] > scores[1] ? "Joueur 2" : "Égalité");
+            setTimeout(() => {
+                alert(`¡Juego terminado!\n\nScores finals :\nJoueur 1 : ${scores[1]}\nJoueur 2 : ${scores[2]}\n\nVainqueur : ${winner} !`);
+                // Recharger la page pour rejouer
+                location.reload();
+            }, 500);
+        }
+
+        // Lancement au chargement
+        window.onload = initGame;
+    </script>
+</body>
+</html>
